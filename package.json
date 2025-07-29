@@ -1,0 +1,21 @@
+{
+  "name": "image_uploader",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cloudinary": "^2.7.0",
+    "detect-port": "^2.1.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "multer": "^2.0.2"
+  }
+}
