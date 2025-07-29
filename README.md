@@ -7,12 +7,10 @@ This is a simple Node.js + Express app that allows users to upload images to Clo
 
 ## Features
 
-- Upload images via drag & drop or file picker  
 - Upload directly to a specified Cloudinary folder  
 - Automatically deletes local files after successful upload  
 - Clean UI with Tailwind CSS  
 - Simple backend using Express and Multer  
-- Progress bar and preview for instant feedback
 
 ---
 
