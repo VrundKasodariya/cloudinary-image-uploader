@@ -4,6 +4,7 @@ document.getElementById("uploadForm").addEventListener("submit", async function 
   const form = e.target;
   const formData = new FormData(form);
   const spinner = document.getElementById("spinner");
+  const previewContainer = document.getElementById("preview");
 
   spinner.classList.remove("hidden");
 
@@ -15,27 +16,49 @@ document.getElementById("uploadForm").addEventListener("submit", async function 
 
     const data = await response.json();
 
-    if (data.imageUrl) {
+    if (data.urls && Array.isArray(data.urls)) {
+      previewContainer.innerHTML = ""; 
 
-      const img = document.createElement("img");
-      img.src = data.imageUrl;
-      img.alt = "Uploaded Image";
-      img.className = "mt-4 max-w-md rounded shadow";
+      data.urls.forEach(url => {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = "Uploaded Image";
+        img.className = "w-24 h-24 object-cover rounded border";
+        previewContainer.appendChild(img);
+      });
 
- 
-      const existing = document.getElementById("preview");
-      if (existing) existing.remove();
-
-      img.id = "preview";
-      form.insertAdjacentElement("afterend", img);
-    } else {
+      alert(`Uploaded ${data.urls.length} image(s) successfully!`);
+      form.reset(); 
       alert("Upload failed: " + (data.message || "Unknown error"));
     }
   } catch (err) {
     console.error("Upload Error:", err);
-    alert("Something went wrong during upload.");
+    alert("Error during upload.");
   } finally {
-    
     spinner.classList.add("hidden");
   }
 });
+
+function previewFiles(event) {
+  const previewContainer = document.getElementById("preview");
+  previewContainer.innerHTML = "";
+
+  const files = event.target.files;
+
+  if (files.length > 50) {
+    alert("You can only upload up to 50 images.");
+    event.target.value = ""; 
+    return;
+  }
+
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.createElement("img");
+      img.src = e.target.result;
+      img.className = "w-24 h-24 object-cover rounded border";
+      previewContainer.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}

@@ -1,81 +1,95 @@
-
 # Cloudinary Image Uploader
 
-This is a simple Node.js + Express app that allows users to upload images to Cloudinary using a user-friendly interface built with Vanilla HTML, Tailwind CSS, and JavaScript. Uploaded files are temporarily stored locally and deleted after successful upload.
+This is a full-stack Node.js + Express application that enables event guests (such as at weddings) to upload images directly to Cloudinary. Each guest is uniquely identified using a guest ID stored in their browser, and uploads are tracked in MongoDB to ensure a maximum of 50 uploads per guest.
 
 ---
 
 ## Features
 
-- Upload directly to a specified Cloudinary folder  
-- Automatically deletes local files after successful upload  
-- Clean UI with Tailwind CSS  
-- Simple backend using Express and Multer  
-
+- Upload multiple images in a single batch
+- Uploads go directly to a Cloudinary folder
+- Temporary local files are auto-deleted post-upload
+- Each guest receives a unique browser-stored guest ID
+- Uploads are tracked and capped at 50 per guest
+- Clean, responsive interface using Tailwind CSS
+- Simple and efficient backend with Express and MongoDB
 ---
 
 ## Tech Stack
 
-- Backend: Node.js, Express.js, Multer, Cloudinary SDK  
-- Frontend: HTML5, Tailwind CSS, Vanilla JavaScript  
-- Utilities: dotenv, detect-port
+**Frontend**  
+- HTML5  
+- Tailwind CSS  
+- Vanilla JavaScript (uses localStorage for guest tracking)
+
+**Backend**  
+- Node.js  
+- Express.js  
+- Multer (file handling)  
+- Cloudinary SDK  
+- MongoDB (via Mongoose)
+
+**Utilities**  
+- `dotenv` for environment variable management  
+- `fs` for temporary file operations  
 
 ---
 
 ## Project Structure
 
 ```
-├── index.js                  # Main server file
+├── index.js                   # Main Express server
+├── models/
+│   └── guest.js               # Mongoose schema for guests
 ├── public/
-│   ├── index.html            # Frontend page
-│   └── script.js             # JS logic
-├── utils/
-│   └── cloudinary.js         # Cloudinary helper logic
-├── uploads/                  # Temporary upload folder (auto-cleaned)
-├── .env                      # Environment variables
+│   ├── index.html             # Frontend upload UI
+│   └── script.js              # Frontend logic
+├── uploads/                   # Temporary local file storage
+├── .env                       # Environment variables (not committed)
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## .env File Setup
+## Environment Setup
 
-Create a `.env` file in the root folder:
+Create a `.env` file in the root directory with the following variables:
 
 ```env
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+MONGODB_URI=your_mongodb_connection_string
 PORT=3000
 ```
 
-Note: Never share or commit this file. Make sure it's listed in your `.gitignore`.
+Ensure that your `.env` file is excluded in `.gitignore` to avoid exposing credentials.
 
 ---
 
 ## Getting Started
 
-1. Clone the Repository
+1. **Clone the repository**
 
 ```bash
 git clone https://github.com/VrundKasodariya/cloudinary-image-uploader.git
 cd cloudinary-image-uploader
 ```
 
-2. Install Dependencies
+2. **Install dependencies**
 
 ```bash
 npm install
 ```
 
-3. Run the Server
+3. **Start the server**
 
 ```bash
 node index.js
 ```
 
-4. Open in Browser
+4. **Open in your browser**
 
 ```
 http://localhost:3000
@@ -83,23 +97,27 @@ http://localhost:3000
 
 ---
 
-## Future Improvements
+## Guest Upload Workflow
 
-- Drag & drop upload  
-- Upload progress indicator  
-- Image gallery view of uploads  
-- Multiple file upload support  
-- Dark mode UI  
+- Guests enter their name in the upload form.
+- A unique `guestId` is generated (name + 4-digit suffix) and saved in the browser’s `localStorage`.
+- All uploads are tagged to this guest ID and tracked in MongoDB.
+- Once the guest uploads 50 images, further uploads are blocked.
+- Returning users can resume from where they left off, as long as `localStorage` persists.
+
+---
+
+## Future Enhancements
+
+- Drag-and-drop upload capability
+- Upload progress bar with retry support
+- Guest gallery view and moderation dashboard
+- QR code-based guest login or linking
+- Admin dashboard to review uploads
 
 ---
 
 ## Author
 
-Made by [Vrund Kasodariya](https://www.linkedin.com/in/vrund-kasodariya-89235425b/)  
-GitHub: [@Vrund-Kasodariya](https://github.com/Vrund-Kasodariya)
-
----
-
-## License
-
-This project is licensed under the MIT License.
+Developed by [Vrund Kasodariya](https://www.linkedin.com/in/vrund-kasodariya-89235425b)  
+GitHub: [@VrundKasodariya](https://github.com/VrundKasodariya)

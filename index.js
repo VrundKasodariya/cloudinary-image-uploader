@@ -1,49 +1,131 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import multer from 'multer';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import detect from 'detect-port';
-import { updateOnCloudinary } from './utils/cloudinary.js';
+import express from "express";
+import multer from "multer";
+import dotenv from "dotenv";
+import fs from "fs";
+import { v2 as cloudinary } from "cloudinary";
+import cors from "cors";
+import mongoose from "mongoose";
+import Guest from "./models/guest.js";
+
+
 
 dotenv.config();
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
+const PORT = process.env.PORT || 3000;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+app.use(express.static("public"));
+app.use(cors()); 
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json());
+mongoose.connect(process.env.MONGODB_URI,{
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(()=> console.log("Connected to MongoDB"))
+.catch(err => console.error("MongoDB connection failure error: ",err));
 
-app.post("/upload", upload.single("image"), async (req, res) => {
+const upload = multer({ dest: "uploads/" });
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const uploadToCloudinary = async (filePath) => {
   try {
-    const filePath = req.file?.path;
+    const result = await cloudinary.uploader.upload(filePath, {
+      resource_type: "image",
+      folder: "images",
+    });
+    fs.unlinkSync(filePath); 
+    return result.secure_url;
+  } catch (error) {
+    fs.unlinkSync(filePath); 
+    console.error("Cloudinary error:", error.message);
+    return null;
+  }
+};
 
-    if (!filePath) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+function generateGuestId(name) {
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  return `${name}_${randomSuffix}`;
+}
+
+
+app.post("/upload", upload.array("files", 10), async (req, res) => {
+  const name = req.body.name?.trim();
+  const files = req.files;
+
+  if (!name || files.length === 0) {
+    return res.status(400).json({ message: "Guest name and files are required." });
+  }
+
+  try {
+    const existingGuests = await Guest.find({ name });
+
+    let guest;
+
+    // Reuse an existing guest (if under 50 uploads)
+    for (const g of existingGuests) {
+      if (g.uploads < 50) {
+        guest = g;
+        break;
+      }
     }
 
-    const result = await updateOnCloudinary(filePath);
+    // If none available, create new guestId
+    if (!guest) {
+      let guestId;
+      let taken;
 
-    if (!result) {
-      return res.status(500).json({ success: false, message: 'Upload failed' });
+      do {
+        guestId = generateGuestId(name);
+        taken = await Guest.findOne({ guestId });
+      } while (taken);
+
+      guest = new Guest({
+        name,
+        guestId,
+        uploads: 0,
+        images: [],
+      });
     }
 
-    res.status(200).json({ success: true, imageUrl: result.secure_url });
-  } catch (err) {
-    console.error("❌ Server error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    const remaining = 50 - guest.uploads;
+    if (files.length > remaining) {
+      return res.status(403).json({
+        message: `You can only upload ${remaining} more photo(s).`,
+      });
+    }
+
+    const urls = [];
+
+    for (const file of files) {
+      const uploadedUrl = await uploadToCloudinary(file.path);
+      if (uploadedUrl) {
+        urls.push(uploadedUrl);
+        guest.images.push(uploadedUrl);
+      }
+    }
+
+    guest.uploads += urls.length;
+    await guest.save();
+
+    return res.status(200).json({
+      message: `Uploaded ${urls.length} image(s).`,
+      guestId: guest.guestId,
+      urls,
+      remaining: 50 - guest.uploads,
+    });
+
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({ message: "Upload failed", error: error.message });
   }
 });
 
 
-const DEFAULT_PORT = process.env.PORT || 3000;
 
-detect(DEFAULT_PORT).then((availablePort) => {
-  app.listen(availablePort, () => {
-    console.log(`Server running at http://localhost:${availablePort}`);
-  });
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
 });
