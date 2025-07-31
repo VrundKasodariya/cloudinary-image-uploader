@@ -7,22 +7,21 @@ import cors from "cors";
 import mongoose from "mongoose";
 import Guest from "./models/guest.js";
 
-
-
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static("public"));
-app.use(cors()); 
+app.use(cors());
 
-mongoose.connect(process.env.MONGODB_URI,{
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(()=> console.log("Connected to MongoDB"))
-.catch(err => console.error("MongoDB connection failure error: ",err));
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("MongoDB connection failure error: ", err));
 
 const upload = multer({ dest: "uploads/" });
 cloudinary.config({
@@ -37,10 +36,10 @@ const uploadToCloudinary = async (filePath) => {
       resource_type: "image",
       folder: "images",
     });
-    fs.unlinkSync(filePath); 
+    fs.unlinkSync(filePath);
     return result.secure_url;
   } catch (error) {
-    fs.unlinkSync(filePath); 
+    fs.unlinkSync(filePath);
     console.error("Cloudinary error:", error.message);
     return null;
   }
@@ -51,50 +50,51 @@ function generateGuestId(name) {
   return `${name}_${randomSuffix}`;
 }
 
-
 app.post("/upload", upload.array("files", 10), async (req, res) => {
-  const name = req.body.name?.trim();
+  const { name, guestId } = req.body;
   const files = req.files;
 
   if (!name || files.length === 0) {
-    return res.status(400).json({ message: "Guest name and files are required." });
+    return res
+      .status(400)
+      .json({ message: "Guest name and files are required." });
   }
 
   try {
-    const existingGuests = await Guest.find({ name });
-
     let guest;
 
-    // Reuse an existing guest (if under 50 uploads)
-    for (const g of existingGuests) {
-      if (g.uploads < 50) {
-        guest = g;
-        break;
+    // Try to fetch guest using guestId from localStorage
+    if (guestId) {
+      guest = await Guest.findOne({ guestId });
+    }
+
+    // Fallback: Try finding any existing guest with the same name (who's under 50 uploads)
+    if (!guest) {
+      const candidates = await Guest.find({ name });
+      for (const g of candidates) {
+        if (g.uploads < 50) {
+          guest = g;
+          break;
+        }
       }
     }
 
-    // If none available, create new guestId
+    // If no guest found, create a new one (only if total uploads < 50)
     if (!guest) {
-      let guestId;
-      let taken;
-
-      do {
-        guestId = generateGuestId(name);
-        taken = await Guest.findOne({ guestId });
-      } while (taken);
-
+      const newGuestId = generateGuestId(name);
       guest = new Guest({
         name,
-        guestId,
+        guestId: newGuestId,
         uploads: 0,
         images: [],
       });
     }
-
+  
     const remaining = 50 - guest.uploads;
     if (files.length > remaining) {
       return res.status(403).json({
-        message: `You can only upload ${remaining} more photo(s).`,
+        message: `You can only upload ${remaining} more image(s).`,
+        guestId: guest.guestId,
       });
     }
 
@@ -111,20 +111,17 @@ app.post("/upload", upload.array("files", 10), async (req, res) => {
     guest.uploads += urls.length;
     await guest.save();
 
-    return res.status(200).json({
+    res.status(200).json({
       message: `Uploaded ${urls.length} image(s).`,
-      guestId: guest.guestId,
       urls,
+      guestId: guest.guestId,
       remaining: 50 - guest.uploads,
     });
-
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ message: "Upload failed", error: error.message });
   }
 });
-
-
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
