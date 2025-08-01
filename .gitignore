@@ -6,3 +6,7 @@ node_modules/
 Thumbs.db
 
 uploads/
+
+qr_outputs
+
+generate_qr_styles.py

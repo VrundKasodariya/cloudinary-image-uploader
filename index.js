@@ -62,13 +62,12 @@ app.post("/upload", upload.array("files", 10), async (req, res) => {
 
   try {
     let guest;
-
-    // Try to fetch guest using guestId from localStorage
+ 
     if (guestId) {
       guest = await Guest.findOne({ guestId });
     }
 
-    // Fallback: Try finding any existing guest with the same name (who's under 50 uploads)
+  
     if (!guest) {
       const candidates = await Guest.find({ name });
       for (const g of candidates) {
@@ -79,7 +78,6 @@ app.post("/upload", upload.array("files", 10), async (req, res) => {
       }
     }
 
-    // If no guest found, create a new one (only if total uploads < 50)
     if (!guest) {
       const newGuestId = generateGuestId(name);
       guest = new Guest({

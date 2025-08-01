@@ -1,14 +1,15 @@
-
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("uploadForm");
+  const guestIdInput = document.getElementById("guestId");
+  const guestNameInput = document.getElementById("guestName");
+  const fileInput = form.querySelector("input[name='files']");
   const previewContainer = document.getElementById("preview");
   const spinner = document.getElementById("spinner");
+  const remainingText = document.getElementById("remainingCount");
 
-  const nameInput = form.querySelector("input[name='name']");
-  const fileInput = form.querySelector("input[name='files']");
-
-  fileInput.addEventListener("change", (e) => {
-    const files = Array.from(e.target.files);
+  // 🔹 Image Preview
+  window.previewFiles = (event) => {
+    const files = Array.from(event.target.files);
     previewContainer.innerHTML = "";
 
     if (files.length > 50) {
@@ -19,29 +20,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     files.forEach(file => {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = (e) => {
         const img = document.createElement("img");
-        img.src = event.target.result;
+        img.src = e.target.result;
         img.className = "w-24 h-24 object-cover rounded border";
         previewContainer.appendChild(img);
       };
       reader.readAsDataURL(file);
     });
-  });
+  };
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    spinner.classList.remove("hidden");
+
+    const guestName = guestNameInput.value.trim();
+    const guestId = localStorage.getItem("guestId") || "";
+
+    guestIdInput.value = guestId;
 
     const formData = new FormData(form);
-    const guestName = nameInput.value.trim();
-    const guestId = localStorage.getItem("guestId");
-
-    formData.append("name", guestName);
-    if (guestId) {
-      formData.append("guestId", guestId);
-    }
-
-    spinner.classList.remove("hidden");
+    formData.set("name", guestName);
+    formData.set("guestId", guestId);
 
     try {
       const response = await fetch("/upload", {
@@ -53,23 +53,31 @@ document.addEventListener("DOMContentLoaded", () => {
       spinner.classList.add("hidden");
 
       if (response.ok) {
+
         if (data.guestId) {
           localStorage.setItem("guestId", data.guestId);
         }
 
+        fileInput.value = "";
+        previewContainer.innerHTML = "";
+
+
         if (data.urls && Array.isArray(data.urls)) {
-          previewContainer.innerHTML = "";
           data.urls.forEach(url => {
             const img = document.createElement("img");
             img.src = url;
             img.className = "w-24 h-24 object-cover rounded border";
             previewContainer.appendChild(img);
           });
+
           alert(`Uploaded ${data.urls.length} image(s) successfully.`);
+        }
+
+        if (data.remaining !== undefined) {
+          remainingText.innerText = `You can upload ${data.remaining} more image(s).`;
         }
       } else {
         alert(data.message || "Upload failed.");
-        return;
       }
     } catch (error) {
       console.error("Upload Error:", error);

@@ -8,15 +8,14 @@
   </head>
   <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6 space-y-4">
-      <h1 class="text-2xl font-bold text-center">
-        Upload Images to Cloudinary
-      </h1>
+      <h1 class="text-2xl font-bold text-center">Upload Images to Cloudinary</h1>
 
       <form
         id="uploadForm"
         enctype="multipart/form-data"
         class="flex flex-col space-y-4"
       >
+
         <input
           type="text"
           name="name"
@@ -24,6 +23,12 @@
           placeholder="Enter your name"
           class="border border-gray-300 rounded p-2"
           required
+        />
+
+        <input
+          type="hidden"
+          name="guestId"
+          id="guestId"
         />
 
         <input
@@ -66,6 +71,9 @@
           </svg>
         </div>
       </form>
+          
+      <p id="remainingCount" class="text-center text-sm text-gray-600"></p>
+
       <div id="preview" class="flex flex-wrap justify-center gap-2 pt-4"></div>
     </div>
 
