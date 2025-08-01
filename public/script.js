@@ -69,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       } else {
         alert(data.message || "Upload failed.");
+        return;
       }
     } catch (error) {
       console.error("Upload Error:", error);
