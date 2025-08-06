@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const spinner = document.getElementById("spinner");
   const remainingText = document.getElementById("remainingCount");
 
-  // 🔹 Image Preview
+
   window.previewFiles = (event) => {
     const files = Array.from(event.target.files);
     previewContainer.innerHTML = "";
